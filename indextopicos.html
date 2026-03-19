@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enciclopedia de Multithreading y Sistemas Concurrentes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
+
+        :root {
+            --accent-blue: #3b82f6;
+            --accent-purple: #a855f7;
+            --bg-dark: #050505;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #e5e7eb;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        #cursor-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 1000px;
+            height: 1000px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.03) 40%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+        }
+
+        .glass-card {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: border-color 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-nav {
+            scrollbar-width: none;
+        }
+        .sidebar-nav::-webkit-scrollbar { display: none; }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(to right, #3b82f6, #a855f7, #ec4899);
+            z-index: 1000;
+            width: 0%;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        code { font-family: 'Fira Code', monospace; font-size: 0.9em; }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .math-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--accent-blue);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+        }
+
+        .title-underline {
+            position: relative;
+            display: inline-block;
+        }
+        .title-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 40px;
+            height: 4px;
+            background: var(--accent-blue);
+            transition: width 0.3s ease;
+        }
+        .glass-card:hover .title-underline::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="selection:bg-blue-500/40">
+
+    <div class="progress-bar" id="reading-progress"></div>
+    <div id="cursor-glow"></div>
+
+    <nav class="fixed left-6 top-1/2 -translate-y-1/2 hidden 2xl:flex flex-col gap-4 z-50 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-600 sidebar-nav">
+        <a href="#hero" class="hover:text-blue-400 transition-colors py-2 border-l-2 border-transparent hover:border-blue-500 pl-4">00. Introducción</a>
+        <a href="#arquitectura" class="hover:text-blue-400 transition-colors py-2 border-l-2 border-transparent hover:border-blue-500 pl-4">01. Arquitectura</a>
+        <a href="#leyes" class="hover:text-blue-400 transition-colors py-2 border-l-2 border-transparent hover:border-blue-500 pl-4">02. Leyes de Rendimiento</a>
+        <a href="#concurrencia" class="hover:text-blue-400 transition-colors py-2 border-l-2 border-transparent hover:border-blue-500 pl-4">03. El Problema Crítico</a>
+        <a href="#sincronizacion" class="hover:text-blue-400 transition-colors py-2 border-l-2 border-transparent hover:border-blue-500 pl-4">04. Sincronización</a>
+        <a href="#avanzado" class="hover:text-blue-400 transition-colors py-2 border-l-2 border-transparent hover:border-blue-500 pl-4">05. Conceptos Avanzados</a>
+        <a href="#patrones" class="hover:text-blue-400 transition-colors py-2 border-l-2 border-transparent hover:border-blue-500 pl-4">06. Patrones de Diseño</a>
+    </nav>
+
+    <main class="relative z-10 max-w-6xl mx-auto px-6 pt-32 pb-64">
+        
+        <header id="hero" class="mb-48 reveal">
+            <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-blue-500/20 bg-blue-500/5 mb-8">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <span class="text-[10px] font-black uppercase tracking-widest text-blue-400">Publicación Técnica v4.0.2</span>
+            </div>
+            <h1 class="text-7xl md:text-9xl font-black mb-10 tracking-tighter leading-none">
+                Ingeniería de <br><span class="gradient-text">Sistemas Paralelos</span>
+            </h1>
+            <p class="text-2xl md:text-3xl text-gray-400 max-w-4xl leading-relaxed font-light">
+                Un tratado exhaustivo sobre la manipulación de hilos de ejecución, la orquestación de la concurrencia y la superación de los límites físicos del hardware moderno.
+            </p>
+            <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-left border-t border-white/5 pt-12">
+                <div>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Lectura Estimada</p>
+                    <p class="text-xl font-bold">45 Minutos</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Nivel Técnico</p>
+                    <p class="text-xl font-bold">Senior Engineer</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Conceptos Clave</p>
+                    <p class="text-xl font-bold">NUMA, Lock-Free, SIMD</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Última Revisión</p>
+                    <p class="text-xl font-bold">Marzo 2024</p>
+                </div>
+            </div>
+        </header>
+
+        <section id="arquitectura" class="mb-48 reveal">
+            <div class="flex flex-col lg:flex-row gap-20">
+                <div class="lg:w-1/2">
+                    <h2 class="text-5xl font-bold mb-10 title-underline">01. Anatomía Profunda</h2>
+                    <div class="space-y-8 text-gray-400 text-lg">
+                        <p>
+                            Para entender el multithreading, debemos descender al nivel del silicio. Un hilo no es solo una abstracción del software; es un estado de ejecución gestionado por el planificador (scheduler) del kernel.
+                        </p>
+                        <div class="glass-card p-8 rounded-3xl space-y-6">
+                            <h4 class="text-white font-bold flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">A</span>
+                                El TCB (Thread Control Block)
+                            </h4>
+                            <p class="text-sm">
+                                Es la estructura de datos del kernel que almacena el estado del hilo: registros de propósito general, puntero de pila, prioridad de planificación y punteros a la lista de hilos del mismo proceso.
+                            </p>
+                            <h4 class="text-white font-bold flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">B</span>
+                                Context Switching Overhead
+                            </h4>
+                            <p class="text-sm">
+                                El costo de cambiar entre hilos implica vaciar los buffers de instrucciones de la CPU, guardar registros y potencialmente invalidar las caches L1 y L2 (Cache Thrashing).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:w-1/2 relative">
+                    <div class="sticky top-24 glass-card p-10 rounded-[3rem] border-blue-500/10">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none"></div>
+                        <h3 class="text-xl font-black mb-8 uppercase tracking-widest text-blue-500">Jerarquía de Memoria</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-4 border border-white/5 rounded-xl bg-white/5">
+                                <span class="font-mono text-xs">Registros CPU (Privado)</span>
+                                <span class="text-blue-400 font-bold">~1ns</span>
+                            </div>
+                            <div class="flex justify-between items-center p-4 border border-white/5 rounded-xl bg-white/5">
+                                <span class="font-mono text-xs">Cache L1/L2 (Privado/Semi)</span>
+                                <span class="text-blue-400 font-bold">1-10ns</span>
+                            </div>
+                            <div class="flex justify-between items-center p-4 border border-white/5 rounded-xl bg-white/5">
+                                <span class="font-mono text-xs">Cache L3 (Compartida)</span>
+                                <span class="text-purple-400 font-bold">20-50ns</span>
+                            </div>
+                            <div class="flex justify-between items-center p-4 border border-white/5 rounded-xl bg-white/10">
+                                <span class="font-mono text-xs font-bold">RAM / Heap (Compartido)</span>
+                                <span class="text-red-400 font-bold">~100ns</span>
+                            </div>
+                        </div>
+                        <p class="mt-8 text-xs text-gray-500 italic">
+                            * El desafío del desarrollador es mantener los datos en los niveles superiores de esta jerarquía el mayor tiempo posible.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="leyes" class="mb-48 reveal">
+            <h2 class="text-5xl font-bold mb-16 text-center">Teoría del Escalado Espacial</h2>
+            <div class="grid lg:grid-cols-2 gap-12">
+                <div class="glass-card p-12 rounded-[2.5rem]">
+                    <h3 class="text-3xl font-bold mb-6 text-white">Ley de Amdahl</h3>
+                    <p class="text-gray-400 mb-8">
+                        Establece que la mejora máxima de un sistema está limitada por la fracción del programa que debe ejecutarse de forma serial. No importa cuántos núcleos añadas, la parte secuencial siempre será el cuello de botella.
+                    </p>
+                    <div class="math-block font-mono text-blue-300">
+                        S(n) = 1 / [ (1 - P) + (P / n) ]
+                    </div>
+                    <p class="text-sm text-gray-500">Donde <strong>P</strong> es la porción paralelizable y <strong>n</strong> el número de procesadores.</p>
+                </div>
+                <div class="glass-card p-12 rounded-[2.5rem]">
+                    <h3 class="text-3xl font-bold mb-6 text-white">Ley de Gustafson</h3>
+                    <p class="text-gray-400 mb-8">
+                        A diferencia de Amdahl, propone que con más procesadores podemos resolver problemas más grandes en el mismo tiempo, en lugar de resolver el mismo problema más rápido.
+                    </p>
+                    <div class="math-block font-mono text-purple-300">
+                        S(n) = n - (1 - P) * (n - 1)
+                    </div>
+                    <p class="text-sm text-gray-500">Enfoque centrado en la computación científica de alto rendimiento.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="concurrencia" class="mb-48 reveal">
+            <div class="relative p-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-[3rem]">
+                <div class="bg-[#080808] p-12 md:p-20 rounded-[2.9rem]">
+                    <h2 class="text-5xl font-bold mb-12">La Pesadilla de la Concurrencia</h2>
+                    <div class="concept-grid">
+                        <div class="space-y-4">
+                            <h4 class="text-xl font-bold text-red-400">Race Conditions</h4>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Ocurren cuando dos o más hilos acceden a datos compartidos e intentan cambiarlos al mismo tiempo. Como el algoritmo de planificación de hilos puede intercambiar hilos en cualquier momento, no sabes el orden en que los hilos intentarán acceder a los datos compartidos.
+                            </p>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="text-xl font-bold text-orange-400">Deadlocks (Abrazo Mortal)</h4>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Un estado donde dos o más hilos están bloqueados para siempre, esperando el uno al otro. Se deben cumplir las 4 condiciones de Coffman: Exclusión mutua, Retención y espera, Sin desalojo y Espera circular.
+                            </p>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="text-xl font-bold text-yellow-400">Livelocks</h4>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Similar al deadlock, pero el estado de los hilos involucrados cambia constantemente el uno respecto al otro, sin progresar en su tarea. Es como dos personas intentando pasarse en un pasillo estrecho.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="sincronizacion" class="mb-48 reveal">
+            <h2 class="text-5xl font-bold mb-16 title-underline">04. Mecanismos de Sincronización</h2>
+            <div class="grid md:grid-cols-2 gap-10">
+                <div class="space-y-10">
+                    <div class="glass-card p-10 rounded-3xl">
+                        <h4 class="text-2xl font-bold mb-4 text-white">Barreras de Memoria (Memory Fences)</h4>
+                        <p class="text-gray-400 text-sm mb-6">
+                            Las CPUs modernas reordenan instrucciones para optimizar el pipeline. Una barrera de memoria obliga a que todas las lecturas/escrituras anteriores se completen antes de continuar, garantizando la visibilidad entre hilos.
+                        </p>
+                        <div class="bg-black/50 p-4 rounded-xl border border-white/5">
+                            <code class="text-blue-400">std::atomic_thread_fence(std::memory_order_release);</code>
+                        </div>
+                    </div>
+                    <div class="glass-card p-10 rounded-3xl">
+                        <h4 class="text-2xl font-bold mb-4 text-white">Operaciones Atómicas (CAS)</h4>
+                        <p class="text-gray-400 text-sm mb-6">
+                            <strong>Compare-And-Swap:</strong> Una instrucción atómica de la CPU que permite actualizar un valor solo si coincide con el valor esperado. Es la base de las estructuras de datos <em>Lock-Free</em>.
+                        </p>
+                    </div>
+                </div>
+                <div class="space-y-10">
+                    <div class="glass-card p-10 rounded-3xl border-l-4 border-purple-500">
+                        <h4 class="text-2xl font-bold mb-4 text-white">Lectores-Escritores (RW Locks)</h4>
+                        <p class="text-gray-400 text-sm">
+                            Permiten múltiples lectores simultáneos pero solo un escritor exclusivo. Ideal para bases de datos donde las lecturas superan masivamente a las escrituras.
+                        </p>
+                    </div>
+                    <div class="glass-card p-10 rounded-3xl border-l-4 border-pink-500">
+                        <h4 class="text-2xl font-bold mb-4 text-white">Spinlocks</h4>
+                        <p class="text-gray-400 text-sm">
+                            Un hilo "gira" en un bucle infinito esperando que el recurso se libere. Solo es eficiente si el tiempo de espera es menor que el costo de un cambio de contexto del SO.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="avanzado" class="mb-48 reveal">
+            <h2 class="text-5xl font-bold mb-16 text-right">Fronteras de la Computación</h2>
+            <div class="flex flex-col lg:flex-row-reverse gap-16">
+                <div class="lg:w-1/2">
+                    <div class="space-y-12">
+                        <div>
+                            <h4 class="text-2xl font-bold text-blue-400 mb-4">Afinidad de CPU</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                Consiste en "atar" un hilo a un núcleo físico específico. Esto maximiza el aprovechamiento de la cache L1 y evita que el planificador del sistema operativo mueva el hilo innecesariamente.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 class="text-2xl font-bold text-purple-400 mb-4">Arquitecturas NUMA</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                En sistemas multi-socket, el acceso a la memoria local es más rápido que el acceso a la memoria remota conectada a otra CPU. Los hilos deben ser "conscientes de la topología" (Topology Aware) para evitar latencias extremas.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 class="text-2xl font-bold text-pink-400 mb-4">Falsas Comparticiones (False Sharing)</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                Un problema de rendimiento donde hilos en diferentes núcleos actualizan variables diferentes que residen en la misma línea de cache, forzando constantes invalidaciones de cache innecesarias.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:w-1/2">
+                    <div class="bg-gray-900/50 p-1 rounded-3xl border border-white/5">
+                        <div class="bg-[#050505] p-8 rounded-[1.4rem]">
+                            <h3 class="font-mono text-sm text-gray-500 mb-6 uppercase tracking-widest">// Implementación Avanzada</h3>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                                    <h5 class="text-blue-400 font-bold text-xs uppercase mb-2">Simulación de Carga Paralela</h5>
+                                    <div class="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-500 animate-[progress_3s_infinite]" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-purple-500/5 rounded-xl border border-purple-500/10">
+                                    <h5 class="text-purple-400 font-bold text-xs uppercase mb-2">Planificación de Tareas (Thread Pool)</h5>
+                                    <div class="flex gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                                        <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse delay-75"></div>
+                                        <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse delay-150"></div>
+                                        <div class="w-2 h-2 rounded-full bg-gray-700"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+       
+        <section id="patrones" class="mb-48 reveal">
+            <h2 class="text-5xl font-bold mb-16">Arquitectura de Software Paralelo</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="glass-card p-6 rounded-2xl border-t-2 border-blue-500">
+                    <h5 class="font-bold mb-3">Productor-Consumidor</h5>
+                    <p class="text-xs text-gray-500">Uso de colas sincronizadas para desacoplar la generación de datos de su procesamiento.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl border-t-2 border-purple-500">
+                    <h5 class="font-bold mb-3">Fork/Join</h5>
+                    <p class="text-xs text-gray-500">División recursiva de tareas en sub-tareas hasta que sean lo suficientemente pequeñas.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl border-t-2 border-pink-500">
+                    <h5 class="font-bold mb-3">Active Object</h5>
+                    <p class="text-xs text-gray-500">Encapsula la ejecución de métodos en hilos separados para mejorar la concurrencia.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl border-t-2 border-orange-500">
+                    <h5 class="font-bold mb-3">Thread Local Storage</h5>
+                    <p class="text-xs text-gray-500">Datos globales pero únicos para cada hilo, eliminando la necesidad de sincronización.</p>
+                </div>
+            </div>
+        </section>
+
+       
+        <footer class="text-center py-20 border-t border-white/5 reveal">
+            <h2 class="text-6xl font-black mb-8 gradient-text">Más allá de la CPU</h2>
+            <p class="text-xl text-gray-500 max-w-2xl mx-auto mb-16">
+                El multithreading es el arte de dominar el tiempo y el espacio en la computación. Aquellos que comprenden sus matices construyen los cimientos de la infraestructura digital del futuro.
+            </p>
+            
+            <div class="inline-flex flex-col items-center gap-6">
+                <div class="flex gap-4">
+                    <button class="px-8 py-4 bg-white text-black font-black rounded-full hover:bg-blue-500 hover:text-white transition-all transform hover:scale-105">
+                        DESCARGAR PDF COMPLETO
+                    </button>
+                    <button class="px-8 py-4 bg-white/5 border border-white/10 text-white font-black rounded-full hover:bg-white/10 transition-all">
+                        VER REPOSITORIO
+                    </button>
+                </div>
+                <p class="text-[10px] uppercase tracking-[0.3em] text-gray-700">Diseñado para la élite del desarrollo de sistemas</p>
+            </div>
+        </footer>
+
+    </main>
+
+    <script>
+     
+        const glow = document.getElementById('cursor-glow');
+        let mouseX = 0, mouseY = 0;
+        let glowX = 0, glowY = 0;
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function animateGlow() {
+           
+            glowX += (mouseX - glowX) * 0.1;
+            glowY += (mouseY - glowY) * 0.1;
+            glow.style.left = `${glowX}px`;
+            glow.style.top = `${glowY}px`;
+            requestAnimationFrame(animateGlow);
+        }
+        animateGlow();
+
+    
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY;
+            const totalHeight = document.body.scrollHeight - window.innerHeight;
+            const progress = (scrollPos / totalHeight) * 100;
+            document.getElementById('reading-progress').style.width = `${progress}%`;
+        });
+
+       
+        const observerOptions = { threshold: 0.1, rootMargin: "0px 0px -100px 0px" };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { 
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                   
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        
+        document.querySelectorAll('.sidebar-nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                window.scrollTo({
+                    top: target.offsetTop - 50,
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
